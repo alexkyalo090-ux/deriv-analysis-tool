@@ -218,14 +218,13 @@
             text-align: center;
         }
 
-        .pulse {
-            animation: pulse 0.5s ease;
+        @keyframes fadeIn {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        .update-pulse {
+            animation: fadeIn 0.3s ease;
         }
     </style>
 
@@ -299,16 +298,7 @@
 
     <script>
         let tickHistory = [];
-        let rawPriceHistory = [];
-        const targetLookback = 1012;
-        let basePrice = 1234.56;
-
-        let currentTimer = 0;
-        let maxTimer = 20;
-        let masterTimer = null;
-        let isAnalyzingPhase = true;
-        let demoInterval = null;
-        let isRunning = false;
+        let cycleCount = 0;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -328,6 +318,12 @@
         const countdownLabel = document.getElementById('countdown-label');
         const analysisText = document.getElementById('analysis-text');
 
+        let countdownValue = 20;
+        let phase = 'analysis'; // 'analysis' or 'validation'
+        let countdownInterval = null;
+        let tickInterval = null;
+        let basePrice = 1234.56;
+
         strategySelect.addEventListener('change', () => {
             const activeText = strategySelect.options[strategySelect.selectedIndex].text;
             strategyLabel.innerText = activeText + " Strategy";
@@ -335,191 +331,149 @@
         });
 
         startBtn.addEventListener('click', () => {
-            if (!isRunning) {
-                startDemoAnalysis();
-                isRunning = true;
-                startBtn.innerText = "Analysis Running...";
-                startBtn.disabled = true;
+            if (countdownInterval === null) {
+                startAnalysis();
             }
         });
 
-        function runSystemTimer() {
-            if (masterTimer) clearInterval(masterTimer);
+        function startAnalysis() {
+            startBtn.disabled = true;
+            startBtn.innerText = "Running...";
+            resultBox.classList.remove('hidden');
+            tickHistory = [];
+            cycleCount = 0;
+            phase = 'analysis';
+            countdownValue = 20;
+            analysisText.innerText = "🔄 Generating market ticks...";
 
-            isAnalyzingPhase = true;
-            maxTimer = 20;
-            currentTimer = maxTimer;
-            countdownLabel.innerText = "Analysis Phase:";
-            countdownTimer.innerText = `${currentTimer}s`;
-            predDigitDisp.innerText = "Analyzing...";
-            predDigitDisp.style.color = "#f59e0b";
-            recommendedRunsDisp.innerText = "...";
+            // Start tick simulation
+            generateTicks();
 
-            masterTimer = setInterval(() => {
-                currentTimer--;
-                countdownTimer.innerText = `${currentTimer}s`;
+            // Start countdown
+            updateCountdown();
+        }
 
-                if (currentTimer <= 0) {
-                    if (isAnalyzingPhase) {
-                        // First phase complete, start validation
-                        isAnalyzingPhase = false;
-                        countdownLabel.innerText = "Validation Cycle:";
-                        maxTimer = 15;
-                        currentTimer = maxTimer;
-                        countdownTimer.innerText = `${currentTimer}s`;
-                        processStrategyCalculations();
+        function generateTicks() {
+            if (tickInterval) clearInterval(tickInterval);
+
+            tickInterval = setInterval(() => {
+                // Generate random price movement
+                const randomChange = (Math.random() - 0.5) * 2;
+                basePrice += randomChange;
+
+                const lastDigit = Math.floor(basePrice) % 10;
+                tickHistory.push(lastDigit);
+
+                // Keep last 1000 ticks
+                if (tickHistory.length > 1000) tickHistory.shift();
+
+                // Update display
+                liveTickDisp.innerText = basePrice.toFixed(2);
+                const now = new Date();
+                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
+                tickCountDisp.innerText = tickHistory.length;
+            }, 50); // Generate ticks every 50ms
+        }
+
+        function updateCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            countdownInterval = setInterval(() => {
+                countdownValue--;
+                countdownTimer.innerText = `${countdownValue}s`;
+
+                if (countdownValue <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+
+                    if (phase === 'analysis') {
+                        // Analysis complete, start validation
+                        phase = 'validation';
+                        cycleCount++;
+                        countdownLabel.innerText = `Validation Cycle #${cycleCount}:`;
+                        countdownValue = 15;
+                        generatePrediction();
+                        updateCountdown();
                     } else {
-                        // Validation complete, reset and get new prediction
-                        maxTimer = 15;
-                        currentTimer = maxTimer;
-                        countdownTimer.innerText = `${currentTimer}s`;
-                        processStrategyCalculations();
+                        // Validation complete, start new cycle
+                        countdownLabel.innerText = "Validation Cycle:";
+                        countdownValue = 15;
+                        generatePrediction();
+                        updateCountdown();
                     }
                 }
             }, 1000);
         }
 
-        function startDemoAnalysis() {
-            resultBox.classList.remove('hidden');
-            analysisText.innerText = "Simulating market ticks...";
+        function generatePrediction() {
+            if (tickHistory.length < 10) return;
 
-            tickHistory = [];
-            rawPriceHistory = [];
-            basePrice = 1234.56;
+            predDigitDisp.classList.add('update-pulse');
+            setTimeout(() => predDigitDisp.classList.remove('update-pulse'), 300);
 
-            // Simulate incoming ticks every 100ms
-            if (demoInterval) clearInterval(demoInterval);
-            
-            demoInterval = setInterval(() => {
-                // Random walk simulation
-                const change = (Math.random() - 0.5) * 0.08;
-                basePrice += change;
-                
-                const tick = {
-                    quote: basePrice,
-                    epoch: Math.floor(Date.now() / 1000)
-                };
-                
-                processIncomingTick(tick);
-            }, 100);
+            const strategy = strategySelect.value;
+            const recentTicks = tickHistory.slice(-100); // Use last 100 ticks
+            const digitFrequency = Array(10).fill(0);
 
-            runSystemTimer();
-        }
+            recentTicks.forEach(digit => {
+                digitFrequency[digit]++;
+            });
 
-        function processIncomingTick(tick) {
-            const quotePrice = tick.quote;
-            const timeStamp = new Date(tick.epoch * 1000);
-            const timeString = timeStamp.toTimeString().split(' ');
+            let prediction = '';
+            let confidence = 0;
+            let recommendation = 5;
 
-            const priceStr = quotePrice.toString();
-            const endingDigit = parseInt(priceStr.split('.')[0].slice(-1));
-
-            rawPriceHistory.push(quotePrice);
-            if (rawPriceHistory.length > targetLookback) rawPriceHistory.shift();
-
-            if (!isNaN(endingDigit)) {
-                tickHistory.push(endingDigit);
-                if (tickHistory.length > targetLookback) tickHistory.shift();
+            if (strategy === 'matches') {
+                const maxFreq = Math.max(...digitFrequency);
+                const mostCommon = digitFrequency.indexOf(maxFreq);
+                prediction = `Digit ${mostCommon}`;
+                confidence = Math.round((maxFreq / recentTicks.length) * 100);
+                recommendation = confidence > 60 ? 3 : 7;
             }
-
-            // Display live updates
-            liveTickDisp.innerText = quotePrice.toFixed(2);
-            liveTimeDisp.innerText = timeString[0];
-            tickCountDisp.innerText = tickHistory.length;
-        }
-
-        function processStrategyCalculations() {
-            if (tickHistory.length < 1) return;
-
-            predDigitDisp.classList.add('pulse');
-            setTimeout(() => predDigitDisp.classList.remove('pulse'), 500);
-
-            predDigitDisp.style.fontSize = "34px";
-            const activeStrategy = strategySelect.value;
-            const occurrences = Array(10).fill(0);
-            tickHistory.forEach(d => occurrences[d]++);
-
-            let displayValue = "";
-            let confidencePercent = 50;
-            let runRecommendation = 7;
-
-            if (activeStrategy === 'matches' || activeStrategy === 'differs') {
-                const highestFrequency = Math.max(...occurrences);
-                const targetDigit = occurrences.indexOf(highestFrequency);
-                const lowestFrequency = Math.min(...occurrences);
-                const safetyDigit = occurrences.indexOf(lowestFrequency);
-
-                if (activeStrategy === 'matches') {
-                    displayValue = `Digit ${targetDigit}`;
-                    let ratio = (highestFrequency / tickHistory.length) * 100;
-                    confidencePercent = Math.min(Math.max(Math.round(ratio * 4.5), 35), 82);
-                    runRecommendation = confidencePercent > 65 ? 5 : 8;
-                } else {
-                    displayValue = `Digit ${safetyDigit}`;
-                    let ratio = 100 - ((lowestFrequency / tickHistory.length) * 100);
-                    confidencePercent = Math.min(Math.max(Math.round(ratio * 0.95), 75), 98);
-                    runRecommendation = 3;
-                }
+            else if (strategy === 'differs') {
+                const minFreq = Math.min(...digitFrequency);
+                const leastCommon = digitFrequency.indexOf(minFreq);
+                prediction = `Digit ${leastCommon}`;
+                confidence = Math.round(100 - (minFreq / recentTicks.length) * 100);
+                recommendation = 2;
             }
-            else if (activeStrategy === 'even_odd') {
-                let evensCount = 0;
-                tickHistory.forEach(d => { if(d % 2 === 0) evensCount++; });
-                let evensRatio = (evensCount / tickHistory.length) * 100;
-
-                if (evensRatio >= 50) {
-                    displayValue = "EVEN";
-                    confidencePercent = Math.round(evensRatio);
-                } else {
-                    displayValue = "ODD";
-                    confidencePercent = Math.round(100 - evensRatio);
-                }
-                runRecommendation = confidencePercent > 55 ? 6 : 9;
+            else if (strategy === 'even_odd') {
+                const evenCount = recentTicks.filter(d => d % 2 === 0).length;
+                const evenPercent = Math.round((evenCount / recentTicks.length) * 100);
+                prediction = evenPercent > 50 ? 'EVEN' : 'ODD';
+                confidence = Math.max(evenPercent, 100 - evenPercent);
+                recommendation = 6;
             }
-            else if (activeStrategy === 'over_under') {
-                let highDigitsCount = 0;
-                tickHistory.forEach(d => { if(d > 5) highDigitsCount++; });
-                let highRatio = (highDigitsCount / tickHistory.length) * 100;
-
-                if (highRatio >= 50) {
-                    displayValue = "OVER 5";
-                    confidencePercent = Math.round(highRatio);
-                } else {
-                    displayValue = "UNDER 5";
-                    confidencePercent = Math.round(100 - highRatio);
-                }
-                runRecommendation = 5;
+            else if (strategy === 'over_under') {
+                const overFive = recentTicks.filter(d => d > 5).length;
+                const overPercent = Math.round((overFive / recentTicks.length) * 100);
+                prediction = overPercent > 50 ? 'OVER 5' : 'UNDER 5';
+                confidence = Math.max(overPercent, 100 - overPercent);
+                recommendation = 5;
             }
-            else if (activeStrategy === 'rise_fall') {
+            else if (strategy === 'rise_fall') {
                 let riseCount = 0;
-                for (let i = 1; i < rawPriceHistory.length; i++) {
-                    if (rawPriceHistory[i] > rawPriceHistory[i - 1]) riseCount++;
+                for (let i = 1; i < recentTicks.length; i++) {
+                    if (recentTicks[i] > recentTicks[i-1]) riseCount++;
                 }
-                let riseRatio = (riseCount / (rawPriceHistory.length - 1)) * 100;
-
-                if (riseRatio >= 50) {
-                    displayValue = "RISE 📈";
-                    confidencePercent = Math.min(Math.max(Math.round(riseRatio * 1.1), 40), 88);
-                } else {
-                    displayValue = "FALL 📉";
-                    confidencePercent = Math.min(Math.max(Math.round((100 - riseRatio) * 1.1), 40), 88);
-                }
-                runRecommendation = confidencePercent > 60 ? 4 : 7;
+                const risePercent = Math.round((riseCount / (recentTicks.length - 1)) * 100);
+                prediction = risePercent > 50 ? 'RISE 📈' : 'FALL 📉';
+                confidence = Math.max(risePercent, 100 - risePercent);
+                recommendation = 4;
             }
 
-            predDigitDisp.innerText = displayValue;
-            predDigitDisp.style.color = "#10b981";
-            confidenceTxt.innerText = `${confidencePercent}%`;
-            confidenceBar.style.width = `${confidencePercent}%`;
-            recommendedRunsDisp.innerText = runRecommendation;
+            predDigitDisp.innerText = prediction;
+            predDigitDisp.style.color = confidence > 60 ? '#10b981' : '#f59e0b';
+            confidenceTxt.innerText = `${confidence}%`;
+            confidenceTxt.style.color = confidence > 60 ? '#10b981' : '#ef4444';
+            confidenceBar.style.width = `${confidence}%`;
+            confidenceBar.style.backgroundColor = confidence > 60 ? '#10b981' : '#ef4444';
+            recommendedRunsDisp.innerText = recommendation;
 
-            if (confidencePercent > 60) {
-                confidenceTxt.style.color = "#10b981";
-                confidenceBar.style.backgroundColor = "#10b981";
-                analysisText.innerText = `✅ Pattern evaluated. High probability cycle entry identified.`;
+            if (confidence > 60) {
+                analysisText.innerText = `✅ Strong pattern! Entry signal detected.`;
             } else {
-                confidenceTxt.style.color = "#ef4444";
-                confidenceBar.style.backgroundColor = "#ef4444";
-                analysisText.innerText = `⚠️ Standard market movement detected. Monitor risk sizing parameters.`;
+                analysisText.innerText = `⚠️ Moderate pattern. Exercise caution.`;
             }
         }
     </script>
