@@ -132,6 +132,7 @@
             color: #f59e0b;
             margin-top: 8px;
             margin-bottom: 2px;
+            transition: all 0.3s ease;
         }
 
         .live-countdown-line {
@@ -297,6 +298,7 @@
         let masterTimer = null;
         let isAnalyzingPhase = true;
         let demoInterval = null;
+        let isRunning = false;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -323,7 +325,12 @@
         });
 
         startBtn.addEventListener('click', () => {
-            startDemoAnalysis();
+            if (!isRunning) {
+                startDemoAnalysis();
+                isRunning = true;
+                startBtn.innerText = "Analysis Running...";
+                startBtn.disabled = true;
+            }
         });
 
         function runSystemTimer() {
@@ -347,6 +354,7 @@
                         countdownLabel.innerText = "Validation Cycle:";
                         validationTime = 15;
                         countdownTimer.innerText = `${validationTime}s`;
+                        // Generate first prediction
                         processStrategyCalculations();
                     }
                 } else {
@@ -354,8 +362,11 @@
                     countdownTimer.innerText = `${validationTime}s`;
 
                     if (validationTime <= 0) {
+                        // Start new validation cycle
                         validationTime = 15;
                         countdownTimer.innerText = `${validationTime}s`;
+                        countdownLabel.innerText = "Validation Cycle:";
+                        // Generate new prediction
                         processStrategyCalculations();
                     }
                 }
@@ -363,7 +374,6 @@
         }
 
         function startDemoAnalysis() {
-            startBtn.innerText = "Demo Mode Active...";
             resultBox.classList.remove('hidden');
             analysisText.innerText = "Simulating market ticks...";
 
@@ -371,12 +381,12 @@
             rawPriceHistory = [];
             basePrice = 1234.56;
 
-            // Simulate incoming ticks every 200ms
+            // Simulate incoming ticks every 100ms
             if (demoInterval) clearInterval(demoInterval);
             
             demoInterval = setInterval(() => {
                 // Random walk simulation
-                const change = (Math.random() - 0.5) * 0.05;
+                const change = (Math.random() - 0.5) * 0.08;
                 basePrice += change;
                 
                 const tick = {
@@ -385,7 +395,7 @@
                 };
                 
                 processIncomingTick(tick);
-            }, 200);
+            }, 100);
 
             runSystemTimer();
         }
@@ -410,10 +420,6 @@
             liveTickDisp.innerText = quotePrice.toFixed(2);
             liveTimeDisp.innerText = timeString[0];
             tickCountDisp.innerText = tickHistory.length;
-
-            if (!isAnalyzingPhase) {
-                processStrategyCalculations();
-            }
         }
 
         function processStrategyCalculations() {
@@ -500,11 +506,11 @@
             if (confidencePercent > 60) {
                 confidenceTxt.style.color = "#10b981";
                 confidenceBar.style.backgroundColor = "#10b981";
-                analysisText.innerText = `Pattern evaluated. High probability cycle entry identified.`;
+                analysisText.innerText = `✅ Pattern evaluated. High probability cycle entry identified.`;
             } else {
                 confidenceTxt.style.color = "#ef4444";
                 confidenceBar.style.backgroundColor = "#ef4444";
-                analysisText.innerText = `Standard market movement detected. Monitor risk sizing parameters.`;
+                analysisText.innerText = `⚠️ Standard market movement detected. Monitor risk sizing parameters.`;
             }
         }
     </script>
