@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deriv Analysis Tool Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        body {
+            background: #0e021f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .dashboard-card {
+            width: 100%;
+            max-width: 440px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 22px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            text-align: center;
+        }
+
+        h2.title {
+            color: #c084fc;
+            font-size: 21px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .control-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .input-group {
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #c084fc;
+            margin-bottom: 5px;
+            padding-left: 2px;
+        }
+
+        .input-group select {
+            width: 100%;
+            background: #090514;
+            border: 1px solid #6b21a8;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 14px;
+            color: #f3f4f6;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .live-tracker {
+            background: rgba(107, 33, 168, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 16px;
+            padding: 14px;
+        }
+
+        #live-tick {
+            font-size: 38px;
+            font-weight: 900;
+            color: #e9d5ff;
+            letter-spacing: -1px;
+        }
+
+        .tracker-subtext {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        #start-btn {
+            width: 100%;
+            background: #7e22ce;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .results-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #a78bfa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #prediction-digit {
+            font-size: 34px;
+            font-weight: 900;
+            color: #f59e0b;
+            margin-top: 8px;
+            margin-bottom: 2px;
+        }
+
+        .live-countdown-line {
+            font-size: 14px;
+            font-weight: bold;
+            color: #f59e0b;
+            margin-bottom: 10px;
+        }
+
+        .strategy-tag {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .matrix-list {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #cbd5e1;
+            text-align: left;
+        }
+
+        .matrix-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bar-container {
+            width: 100px;
+            background: #020105;
+            height: 6px;
+            border-radius: 99px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #confidence-bar {
+            width: 0%;
+            height: 100%;
+            background: #ef4444;
+            transition: width 0.3s ease;
+        }
+
+        .value-highlight {
+            color: #f1f5f9;
+            font-weight: 900;
+        }
+
+        .analysis-footer {
+            margin-top: 14px;
+            background: rgba(168, 85, 247, 0.08);
+            border: 1px solid rgba(168, 85, 247, 0.12);
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        #analysis-text {
+            font-style: italic;
+            color: #e2e8f0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .demo-badge {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid #22c55e;
+            color: #86efac;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="dashboard-card">
+        <h2 class="title">Deriv Analysis Tool Pro</h2>
+        <div class="demo-badge">🎮 DEMO MODE (Simulated Data)</div>
+
+        <div class="control-panel">
+            <div class="input-group">
+                <label>📊 Volatility:</label>
+                <select id="asset">
+                    <option value="R_10">Volatility 10 Index</option>
+                    <option value="R_25">Volatility 25 Index</option>
+                    <option value="R_50">Volatility 50 Index</option>
+                    <option value="R_75">Volatility 75 Index</option>
+                    <option value="R_100">Volatility 100 Index</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>🕒 Strategy:</label>
+                <select id="strategy">
+                    <option value="matches">Matches</option>
+                    <option value="differs">Differs</option>
+                    <option value="even_odd">Even / Odd</option>
+                    <option value="over_under">Over / Under 5</option>
+                    <option value="rise_fall">Rise / Fall</option>
+                </select>
+            </div>
+
+            <div class="live-tracker">
+                <div id="live-tick">0000.00</div>
+                <div class="tracker-subtext">
+                    Last update: <span id="live-time">00:00:00</span> | Ticks: <span id="tick-count">0</span>
+                </div>
+            </div>
+
+            <button id="start-btn">Start Analysis</button>
+        </div>
+
+        <div id="result-box" class="results-panel hidden">
+            <p id="prediction-title" class="panel-title">🎯 Prediction View</p>
+            <h1 id="prediction-digit">Initializing...</h1>
+
+            <div class="live-countdown-line">
+                <span id="countdown-label">Analysis Phase:</span> <span id="countdown-timer">20s</span>
+            </div>
+
+            <p id="strategy-label" class="strategy-tag">Matches Strategy</p>
+
+            <div class="matrix-list">
+                <div class="matrix-row">
+                    <span>Confidence: <span id="confidence-txt" style="color: #ef4444;">0%</span></span>
+                    <div class="bar-container">
+                        <div id="confidence-bar"></div>
+                    </div>
+                </div>
+                <div class="matrix-row">
+                    <span>Recommended Runs:</span>
+                    <span id="recommended-runs" class="value-highlight">...</span>
+                </div>
+            </div>
+
+            <div class="analysis-footer">
+                Analysis: <span id="analysis-text">Collecting initial market packets...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tickHistory = [];
+        let rawPriceHistory = [];
+        const targetLookback = 1012;
+        let basePrice = 1234.56;
+
+        let initialWaitTime = 20;
+        let validationTime = 15;
+        let masterTimer = null;
+        let isAnalyzingPhase = true;
+        let demoInterval = null;
+
+        const startBtn = document.getElementById('start-btn');
+        const assetSelect = document.getElementById('asset');
+        const strategySelect = document.getElementById('strategy');
+        const liveTickDisp = document.getElementById('live-tick');
+        const liveTimeDisp = document.getElementById('live-time');
+        const tickCountDisp = document.getElementById('tick-count');
+        const resultBox = document.getElementById('result-box');
+
+        const predTitle = document.getElementById('prediction-title');
+        const predDigitDisp = document.getElementById('prediction-digit');
+        const strategyLabel = document.getElementById('strategy-label');
+        const confidenceTxt = document.getElementById('confidence-txt');
+        const confidenceBar = document.getElementById('confidence-bar');
+        const recommendedRunsDisp = document.getElementById('recommended-runs');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const countdownLabel = document.getElementById('countdown-label');
+        const analysisText = document.getElementById('analysis-text');
+
+        strategySelect.addEventListener('change', () => {
+            const activeText = strategySelect.options[strategySelect.selectedIndex].text;
+            strategyLabel.innerText = activeText + " Strategy";
+            predTitle.innerText = "🎯 " + activeText + " Prediction";
+        });
+
+        startBtn.addEventListener('click', () => {
+            startDemoAnalysis();
+        });
+
+        function runSystemTimer() {
+            if (masterTimer) clearInterval(masterTimer);
+
+            isAnalyzingPhase = true;
+            initialWaitTime = 20;
+            countdownLabel.innerText = "Analysis Phase:";
+            countdownTimer.innerText = `${initialWaitTime}s`;
+            predDigitDisp.innerText = "Analyzing...";
+            predDigitDisp.style.color = "#f59e0b";
+            recommendedRunsDisp.innerText = "...";
+
+            masterTimer = setInterval(() => {
+                if (isAnalyzingPhase) {
+                    initialWaitTime--;
+                    countdownTimer.innerText = `${initialWaitTime}s`;
+
+                    if (initialWaitTime <= 0) {
+                        isAnalyzingPhase = false;
+                        countdownLabel.innerText = "Validation Cycle:";
+                        validationTime = 15;
+                        countdownTimer.innerText = `${validationTime}s`;
+                        processStrategyCalculations();
+                    }
+                } else {
+                    validationTime--;
+                    countdownTimer.innerText = `${validationTime}s`;
+
+                    if (validationTime <= 0) {
+                        validationTime = 15;
+                        countdownTimer.innerText = `${validationTime}s`;
+                        processStrategyCalculations();
+                    }
+                }
+            }, 1000);
+        }
+
+        function startDemoAnalysis() {
+            startBtn.innerText = "Demo Mode Active...";
+            resultBox.classList.remove('hidden');
+            analysisText.innerText = "Simulating market ticks...";
+
+            tickHistory = [];
+            rawPriceHistory = [];
+            basePrice = 1234.56;
+
+            // Simulate incoming ticks every 200ms
+            if (demoInterval) clearInterval(demoInterval);
+            
+            demoInterval = setInterval(() => {
+                // Random walk simulation
+                const change = (Math.random() - 0.5) * 0.05;
+                basePrice += change;
+                
+                const tick = {
+                    quote: basePrice,
+                    epoch: Math.floor(Date.now() / 1000)
+                };
+                
+                processIncomingTick(tick);
+            }, 200);
+
+            runSystemTimer();
+        }
+
+        function processIncomingTick(tick) {
+            const quotePrice = tick.quote;
+            const timeStamp = new Date(tick.epoch * 1000);
+            const timeString = timeStamp.toTimeString().split(' ');
+
+            const priceStr = quotePrice.toString();
+            const endingDigit = parseInt(priceStr.split('.')[0].slice(-1));
+
+            rawPriceHistory.push(quotePrice);
+            if (rawPriceHistory.length > targetLookback) rawPriceHistory.shift();
+
+            if (!isNaN(endingDigit)) {
+                tickHistory.push(endingDigit);
+                if (tickHistory.length > targetLookback) tickHistory.shift();
+            }
+
+            // Display live updates
+            liveTickDisp.innerText = quotePrice.toFixed(2);
+            liveTimeDisp.innerText = timeString[0];
+            tickCountDisp.innerText = tickHistory.length;
+
+            if (!isAnalyzingPhase) {
+                processStrategyCalculations();
+            }
+        }
+
+        function processStrategyCalculations() {
+            if (tickHistory.length < 1) return;
+
+            predDigitDisp.style.fontSize = "34px";
+            const activeStrategy = strategySelect.value;
+            const occurrences = Array(10).fill(0);
+            tickHistory.forEach(d => occurrences[d]++);
+
+            let displayValue = "";
+            let confidencePercent = 50;
+            let runRecommendation = 7;
+
+            if (activeStrategy === 'matches' || activeStrategy === 'differs') {
+                const highestFrequency = Math.max(...occurrences);
+                const targetDigit = occurrences.indexOf(highestFrequency);
+                const lowestFrequency = Math.min(...occurrences);
+                const safetyDigit = occurrences.indexOf(lowestFrequency);
+
+                if (activeStrategy === 'matches') {
+                    displayValue = `Digit ${targetDigit}`;
+                    let ratio = (highestFrequency / tickHistory.length) * 100;
+                    confidencePercent = Math.min(Math.max(Math.round(ratio * 4.5), 35), 82);
+                    runRecommendation = confidencePercent > 65 ? 5 : 8;
+                } else {
+                    displayValue = `Digit ${safetyDigit}`;
+                    let ratio = 100 - ((lowestFrequency / tickHistory.length) * 100);
+                    confidencePercent = Math.min(Math.max(Math.round(ratio * 0.95), 75), 98);
+                    runRecommendation = 3;
+                }
+            }
+            else if (activeStrategy === 'even_odd') {
+                let evensCount = 0;
+                tickHistory.forEach(d => { if(d % 2 === 0) evensCount++; });
+                let evensRatio = (evensCount / tickHistory.length) * 100;
+
+                if (evensRatio >= 50) {
+                    displayValue = "EVEN";
+                    confidencePercent = Math.round(evensRatio);
+                } else {
+                    displayValue = "ODD";
+                    confidencePercent = Math.round(100 - evensRatio);
+                }
+                runRecommendation = confidencePercent > 55 ? 6 : 9;
+            }
+            else if (activeStrategy === 'over_under') {
+                let highDigitsCount = 0;
+                tickHistory.forEach(d => { if(d > 5) highDigitsCount++; });
+                let highRatio = (highDigitsCount / tickHistory.length) * 100;
+
+                if (highRatio >= 50) {
+                    displayValue = "OVER 5";
+                    confidencePercent = Math.round(highRatio);
+                } else {
+                    displayValue = "UNDER 5";
+                    confidencePercent = Math.round(100 - highRatio);
+                }
+                runRecommendation = 5;
+            }
+            else if (activeStrategy === 'rise_fall') {
+                let riseCount = 0;
+                for (let i = 1; i < rawPriceHistory.length; i++) {
+                    if (rawPriceHistory[i] > rawPriceHistory[i - 1]) riseCount++;
+                }
+                let riseRatio = (riseCount / (rawPriceHistory.length - 1)) * 100;
+
+                if (riseRatio >= 50) {
+                    displayValue = "RISE 📈";
+                    confidencePercent = Math.min(Math.max(Math.round(riseRatio * 1.1), 40), 88);
+                } else {
+                    displayValue = "FALL 📉";
+                    confidencePercent = Math.min(Math.max(Math.round((100 - riseRatio) * 1.1), 40), 88);
+                }
+                runRecommendation = confidencePercent > 60 ? 4 : 7;
+            }
+
+            predDigitDisp.innerText = displayValue;
+            predDigitDisp.style.color = "#10b981";
+            confidenceTxt.innerText = `${confidencePercent}%`;
+            confidenceBar.style.width = `${confidencePercent}%`;
+            recommendedRunsDisp.innerText = runRecommendation;
+
+            if (confidencePercent > 60) {
+                confidenceTxt.style.color = "#10b981";
+                confidenceBar.style.backgroundColor = "#10b981";
+                analysisText.innerText = `Pattern evaluated. High probability cycle entry identified.`;
+            } else {
+                confidenceTxt.style.color = "#ef4444";
+                confidenceBar.style.backgroundColor = "#ef4444";
+                analysisText.innerText = `Standard market movement detected. Monitor risk sizing parameters.`;
+            }
+        }
+    </script>
+
+</body>
+</html>
