@@ -217,6 +217,16 @@
             margin-bottom: 10px;
             text-align: center;
         }
+
+        .pulse {
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 
 </head>
@@ -293,8 +303,8 @@
         const targetLookback = 1012;
         let basePrice = 1234.56;
 
-        let initialWaitTime = 20;
-        let validationTime = 15;
+        let currentTimer = 0;
+        let maxTimer = 20;
         let masterTimer = null;
         let isAnalyzingPhase = true;
         let demoInterval = null;
@@ -337,36 +347,32 @@
             if (masterTimer) clearInterval(masterTimer);
 
             isAnalyzingPhase = true;
-            initialWaitTime = 20;
+            maxTimer = 20;
+            currentTimer = maxTimer;
             countdownLabel.innerText = "Analysis Phase:";
-            countdownTimer.innerText = `${initialWaitTime}s`;
+            countdownTimer.innerText = `${currentTimer}s`;
             predDigitDisp.innerText = "Analyzing...";
             predDigitDisp.style.color = "#f59e0b";
             recommendedRunsDisp.innerText = "...";
 
             masterTimer = setInterval(() => {
-                if (isAnalyzingPhase) {
-                    initialWaitTime--;
-                    countdownTimer.innerText = `${initialWaitTime}s`;
+                currentTimer--;
+                countdownTimer.innerText = `${currentTimer}s`;
 
-                    if (initialWaitTime <= 0) {
+                if (currentTimer <= 0) {
+                    if (isAnalyzingPhase) {
+                        // First phase complete, start validation
                         isAnalyzingPhase = false;
                         countdownLabel.innerText = "Validation Cycle:";
-                        validationTime = 15;
-                        countdownTimer.innerText = `${validationTime}s`;
-                        // Generate first prediction
+                        maxTimer = 15;
+                        currentTimer = maxTimer;
+                        countdownTimer.innerText = `${currentTimer}s`;
                         processStrategyCalculations();
-                    }
-                } else {
-                    validationTime--;
-                    countdownTimer.innerText = `${validationTime}s`;
-
-                    if (validationTime <= 0) {
-                        // Start new validation cycle
-                        validationTime = 15;
-                        countdownTimer.innerText = `${validationTime}s`;
-                        countdownLabel.innerText = "Validation Cycle:";
-                        // Generate new prediction
+                    } else {
+                        // Validation complete, reset and get new prediction
+                        maxTimer = 15;
+                        currentTimer = maxTimer;
+                        countdownTimer.innerText = `${currentTimer}s`;
                         processStrategyCalculations();
                     }
                 }
@@ -424,6 +430,9 @@
 
         function processStrategyCalculations() {
             if (tickHistory.length < 1) return;
+
+            predDigitDisp.classList.add('pulse');
+            setTimeout(() => predDigitDisp.classList.remove('pulse'), 500);
 
             predDigitDisp.style.fontSize = "34px";
             const activeStrategy = strategySelect.value;
