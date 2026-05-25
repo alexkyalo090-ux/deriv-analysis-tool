@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deriv Analysis Tool Pro</title>
+    <title>Deriv Analysis Tool Pro - LIVE</title>
     <style>
         * {
             box-sizing: border-box;
@@ -206,25 +206,22 @@
             display: none !important;
         }
 
-        .demo-badge {
-            background: rgba(34, 197, 94, 0.2);
-            border: 1px solid #22c55e;
-            color: #86efac;
+        .live-badge {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 10px;
             font-weight: 700;
             margin-bottom: 10px;
             text-align: center;
+            animation: pulse 2s infinite;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0.5; }
-            to { opacity: 1; }
-        }
-
-        .update-pulse {
-            animation: fadeIn 0.3s ease;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
     </style>
 
@@ -232,11 +229,11 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div class="demo-badge">🎮 DEMO MODE (Simulated Data)</div>
+        <div class="live-badge">🔴 LIVE MARKET</div>
 
         <div class="control-panel">
             <div class="input-group">
-                <label>📊 Volatility:</label>
+                <label>📊 Asset:</label>
                 <select id="asset">
                     <option value="R_10">Volatility 10 Index</option>
                     <option value="R_25">Volatility 25 Index</option>
@@ -264,12 +261,12 @@
                 </div>
             </div>
 
-            <button id="start-btn">Start Analysis</button>
+            <button id="start-btn">Connect to Live Market</button>
         </div>
 
         <div id="result-box" class="results-panel hidden">
             <p id="prediction-title" class="panel-title">🎯 Prediction View</p>
-            <h1 id="prediction-digit">Initializing...</h1>
+            <h1 id="prediction-digit">Connecting...</h1>
 
             <div class="live-countdown-line">
                 <span id="countdown-label">Analysis Phase:</span> <span id="countdown-timer">20s</span>
@@ -291,13 +288,14 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Collecting initial market packets...</span>
+                Analysis: <span id="analysis-text">Connecting to live Deriv feed...</span>
             </div>
         </div>
     </div>
 
     <script>
         let tickHistory = [];
+        let ws = null;
         let cycleCount = 0;
 
         const startBtn = document.getElementById('start-btn');
@@ -319,10 +317,8 @@
         const analysisText = document.getElementById('analysis-text');
 
         let countdownValue = 20;
-        let phase = 'analysis'; // 'analysis' or 'validation'
+        let phase = 'analysis';
         let countdownInterval = null;
-        let tickInterval = null;
-        let basePrice = 1234.56;
 
         strategySelect.addEventListener('change', () => {
             const activeText = strategySelect.options[strategySelect.selectedIndex].text;
@@ -331,48 +327,74 @@
         });
 
         startBtn.addEventListener('click', () => {
-            if (countdownInterval === null) {
-                startAnalysis();
+            if (ws === null) {
+                connectLiveMarket();
             }
         });
 
-        function startAnalysis() {
+        function connectLiveMarket() {
             startBtn.disabled = true;
-            startBtn.innerText = "Running...";
+            startBtn.innerText = "Connecting...";
             resultBox.classList.remove('hidden');
             tickHistory = [];
             cycleCount = 0;
             phase = 'analysis';
             countdownValue = 20;
-            analysisText.innerText = "🔄 Generating market ticks...";
 
-            // Start tick simulation
-            generateTicks();
+            const wsUrl = 'wss://ws.binaryws.com';
 
-            // Start countdown
-            updateCountdown();
-        }
+            try {
+                ws = new WebSocket(wsUrl);
 
-        function generateTicks() {
-            if (tickInterval) clearInterval(tickInterval);
+                ws.onopen = () => {
+                    const symbol = assetSelect.value;
+                    ws.send(JSON.stringify({
+                        "ticks": symbol,
+                        "subscribe": 1
+                    }));
+                    analysisText.innerText = "✅ Connected to live Deriv market...";
+                    updateCountdown();
+                };
 
-            tickInterval = setInterval(() => {
-                // Generate random price movement
-                const randomChange = (Math.random() - 0.5) * 2;
-                basePrice += randomChange;
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.tick) {
+                            const lastDigit = Math.floor(data.tick.quote) % 10;
+                            tickHistory.push(lastDigit);
+                            if (tickHistory.length > 1000) tickHistory.shift();
 
-                const lastDigit = Math.floor(basePrice) % 10;
-                tickHistory.push(lastDigit);
+                            liveTickDisp.innerText = data.tick.quote.toFixed(2);
+                            const now = new Date();
+                            liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
+                            tickCountDisp.innerText = tickHistory.length;
+                        }
+                    } catch(e) {
+                        console.error("Error:", e);
+                    }
+                };
 
-                // Keep last 1000 ticks
-                if (tickHistory.length > 1000) tickHistory.shift();
+                ws.onerror = () => {
+                    analysisText.innerText = "❌ Connection error. Try again.";
+                    predDigitDisp.innerText = "Error";
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Reconnect";
+                    ws = null;
+                };
 
-                // Update display
-                liveTickDisp.innerText = basePrice.toFixed(2);
-                const now = new Date();
-                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
-                tickCountDisp.innerText = tickHistory.length;
-            }, 50); // Generate ticks every 50ms
+                ws.onclose = () => {
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Try Again";
+                    ws = null;
+                };
+
+            } catch (error) {
+                console.error("Error:", error);
+                analysisText.innerText = "❌ Connection failed.";
+                startBtn.disabled = false;
+                startBtn.innerText = "Try Again";
+            }
         }
 
         function updateCountdown() {
@@ -387,16 +409,13 @@
                     countdownInterval = null;
 
                     if (phase === 'analysis') {
-                        // Analysis complete, start validation
                         phase = 'validation';
                         cycleCount++;
-                        countdownLabel.innerText = `Validation Cycle #${cycleCount}:`;
+                        countdownLabel.innerText = `Cycle #${cycleCount}:`;
                         countdownValue = 15;
                         generatePrediction();
                         updateCountdown();
                     } else {
-                        // Validation complete, start new cycle
-                        countdownLabel.innerText = "Validation Cycle:";
                         countdownValue = 15;
                         generatePrediction();
                         updateCountdown();
@@ -406,13 +425,13 @@
         }
 
         function generatePrediction() {
-            if (tickHistory.length < 10) return;
-
-            predDigitDisp.classList.add('update-pulse');
-            setTimeout(() => predDigitDisp.classList.remove('update-pulse'), 300);
+            if (tickHistory.length < 10) {
+                predDigitDisp.innerText = "Waiting...";
+                return;
+            }
 
             const strategy = strategySelect.value;
-            const recentTicks = tickHistory.slice(-100); // Use last 100 ticks
+            const recentTicks = tickHistory.slice(-100);
             const digitFrequency = Array(10).fill(0);
 
             recentTicks.forEach(digit => {
@@ -471,9 +490,9 @@
             recommendedRunsDisp.innerText = recommendation;
 
             if (confidence > 60) {
-                analysisText.innerText = `✅ Strong pattern! Entry signal detected.`;
+                analysisText.innerText = `✅ Strong signal!`;
             } else {
-                analysisText.innerText = `⚠️ Moderate pattern. Exercise caution.`;
+                analysisText.innerText = `⚠️ Moderate signal.`;
             }
         }
     </script>
