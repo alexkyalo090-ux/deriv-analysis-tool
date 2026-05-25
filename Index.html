@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deriv Analysis Tool Pro - LIVE</title>
+    <title>Deriv Analysis Tool Pro</title>
     <style>
         * {
             box-sizing: border-box;
@@ -206,10 +206,7 @@
             display: none !important;
         }
 
-        .live-badge {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
-            color: #fca5a5;
+        .mode-badge {
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 10px;
@@ -217,6 +214,18 @@
             margin-bottom: 10px;
             text-align: center;
             animation: pulse 2s infinite;
+        }
+
+        .live-badge {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+
+        .simulated-badge {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #93c5fd;
         }
 
         @keyframes pulse {
@@ -229,7 +238,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div class="live-badge">🔴 LIVE MARKET</div>
+        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -288,7 +297,7 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Connecting to live Deriv feed...</span>
+                Analysis: <span id="analysis-text">Connecting to Deriv feed...</span>
             </div>
         </div>
     </div>
@@ -297,6 +306,10 @@
         let tickHistory = [];
         let ws = null;
         let cycleCount = 0;
+        let usingLiveData = false;
+        let connectionTimeout = null;
+        let tickSimInterval = null;
+        let basePrice = 1234.56;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -305,6 +318,7 @@
         const liveTimeDisp = document.getElementById('live-time');
         const tickCountDisp = document.getElementById('tick-count');
         const resultBox = document.getElementById('result-box');
+        const modeBadge = document.getElementById('mode-badge');
 
         const predTitle = document.getElementById('prediction-title');
         const predDigitDisp = document.getElementById('prediction-digit');
@@ -327,12 +341,12 @@
         });
 
         startBtn.addEventListener('click', () => {
-            if (ws === null) {
-                connectLiveMarket();
+            if (ws === null && !usingLiveData) {
+                connectToMarket();
             }
         });
 
-        function connectLiveMarket() {
+        function connectToMarket() {
             startBtn.disabled = true;
             startBtn.innerText = "Connecting...";
             resultBox.classList.remove('hidden');
@@ -341,12 +355,27 @@
             phase = 'analysis';
             countdownValue = 20;
 
+            // Try to connect to live market with 5 second timeout
+            connectionTimeout = setTimeout(() => {
+                console.log("Live connection timeout - switching to simulated data");
+                startSimulation();
+            }, 5000);
+
+            connectLiveMarket();
+        }
+
+        function connectLiveMarket() {
             const wsUrl = 'wss://ws.binaryws.com';
 
             try {
                 ws = new WebSocket(wsUrl);
 
                 ws.onopen = () => {
+                    clearTimeout(connectionTimeout);
+                    usingLiveData = true;
+                    modeBadge.className = 'mode-badge live-badge';
+                    modeBadge.innerText = '🔴 LIVE MARKET';
+                    
                     const symbol = assetSelect.value;
                     ws.send(JSON.stringify({
                         "ticks": symbol,
@@ -375,26 +404,46 @@
                 };
 
                 ws.onerror = () => {
-                    analysisText.innerText = "❌ Connection error. Try again.";
-                    predDigitDisp.innerText = "Error";
-                    startBtn.disabled = false;
-                    startBtn.innerText = "Reconnect";
-                    ws = null;
+                    console.log("WebSocket error - switching to simulated data");
+                    clearTimeout(connectionTimeout);
+                    startSimulation();
                 };
 
                 ws.onclose = () => {
-                    if (countdownInterval) clearInterval(countdownInterval);
-                    startBtn.disabled = false;
-                    startBtn.innerText = "Try Again";
-                    ws = null;
+                    console.log("WebSocket closed");
                 };
 
             } catch (error) {
-                console.error("Error:", error);
-                analysisText.innerText = "❌ Connection failed.";
-                startBtn.disabled = false;
-                startBtn.innerText = "Try Again";
+                console.log("Connection error - switching to simulated data");
+                clearTimeout(connectionTimeout);
+                startSimulation();
             }
+        }
+
+        function startSimulation() {
+            ws = null;
+            usingLiveData = false;
+            modeBadge.className = 'mode-badge simulated-badge';
+            modeBadge.innerText = '🎮 SIMULATED DATA (Live Connection Failed)';
+            analysisText.innerText = "Simulating realistic market data...";
+            
+            // Start generating realistic ticks
+            if (tickSimInterval) clearInterval(tickSimInterval);
+            tickSimInterval = setInterval(() => {
+                const change = (Math.random() - 0.5) * 0.1;
+                basePrice += change;
+                const lastDigit = Math.floor(basePrice) % 10;
+                tickHistory.push(lastDigit);
+                if (tickHistory.length > 1000) tickHistory.shift();
+
+                liveTickDisp.innerText = basePrice.toFixed(2);
+                const now = new Date();
+                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
+                tickCountDisp.innerText = tickHistory.length;
+            }, 50);
+
+            startBtn.disabled = true;
+            updateCountdown();
         }
 
         function updateCountdown() {
@@ -490,9 +539,9 @@
             recommendedRunsDisp.innerText = recommendation;
 
             if (confidence > 60) {
-                analysisText.innerText = `✅ Strong signal!`;
+                analysisText.innerText = `✅ Strong signal detected!`;
             } else {
-                analysisText.innerText = `⚠️ Moderate signal.`;
+                analysisText.innerText = `⚠️ Moderate signal - Exercise caution.`;
             }
         }
     </script>
