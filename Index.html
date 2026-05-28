@@ -238,7 +238,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
+        <div id="mode-badge" class="mode-badge live-badge">⏳ Connecting...</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -270,12 +270,12 @@
                 </div>
             </div>
 
-            <button id="start-btn">Connect to Live Market</button>
+            <button id="start-btn">Connect to Market</button>
         </div>
 
         <div id="result-box" class="results-panel hidden">
             <p id="prediction-title" class="panel-title">🎯 Prediction View</p>
-            <h1 id="prediction-digit">Connecting...</h1>
+            <h1 id="prediction-digit">Initializing...</h1>
 
             <div class="live-countdown-line">
                 <span id="countdown-label">Analysis Phase:</span> <span id="countdown-timer">20s</span>
@@ -297,7 +297,7 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Connecting to Deriv feed...</span>
+                Analysis: <span id="analysis-text">Initializing analysis...</span>
             </div>
         </div>
     </div>
@@ -310,6 +310,7 @@
         let connectionTimeout = null;
         let tickSimInterval = null;
         let basePrice = 1234.56;
+        let hasReceivedData = false;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -354,12 +355,15 @@
             cycleCount = 0;
             phase = 'analysis';
             countdownValue = 20;
+            hasReceivedData = false;
+            modeBadge.innerText = '⏳ Connecting...';
+            modeBadge.className = 'mode-badge live-badge';
 
-            // Try to connect to live market with 5 second timeout
+            // Try live connection with 2 second timeout (FASTER!)
             connectionTimeout = setTimeout(() => {
                 console.log("Live connection timeout - switching to simulated data");
                 startSimulation();
-            }, 5000);
+            }, 2000);
 
             connectLiveMarket();
         }
@@ -371,24 +375,28 @@
                 ws = new WebSocket(wsUrl);
 
                 ws.onopen = () => {
-                    clearTimeout(connectionTimeout);
-                    usingLiveData = true;
-                    modeBadge.className = 'mode-badge live-badge';
-                    modeBadge.innerText = '🔴 LIVE MARKET';
-                    
                     const symbol = assetSelect.value;
                     ws.send(JSON.stringify({
                         "ticks": symbol,
                         "subscribe": 1
                     }));
-                    analysisText.innerText = "✅ Connected to live Deriv market...";
-                    updateCountdown();
                 };
 
                 ws.onmessage = (event) => {
                     try {
                         const data = JSON.parse(event.data);
                         if (data.tick) {
+                            // Successfully received live data!
+                            if (!hasReceivedData) {
+                                clearTimeout(connectionTimeout);
+                                hasReceivedData = true;
+                                usingLiveData = true;
+                                modeBadge.className = 'mode-badge live-badge';
+                                modeBadge.innerText = '🔴 LIVE MARKET';
+                                analysisText.innerText = "✅ Live Deriv market connected!";
+                                updateCountdown();
+                            }
+
                             const lastDigit = Math.floor(data.tick.quote) % 10;
                             tickHistory.push(lastDigit);
                             if (tickHistory.length > 1000) tickHistory.shift();
@@ -404,9 +412,11 @@
                 };
 
                 ws.onerror = () => {
-                    console.log("WebSocket error - switching to simulated data");
-                    clearTimeout(connectionTimeout);
-                    startSimulation();
+                    console.log("WebSocket error");
+                    if (!hasReceivedData) {
+                        clearTimeout(connectionTimeout);
+                        startSimulation();
+                    }
                 };
 
                 ws.onclose = () => {
@@ -414,9 +424,11 @@
                 };
 
             } catch (error) {
-                console.log("Connection error - switching to simulated data");
-                clearTimeout(connectionTimeout);
-                startSimulation();
+                console.log("Connection failed");
+                if (!hasReceivedData) {
+                    clearTimeout(connectionTimeout);
+                    startSimulation();
+                }
             }
         }
 
@@ -424,10 +436,10 @@
             ws = null;
             usingLiveData = false;
             modeBadge.className = 'mode-badge simulated-badge';
-            modeBadge.innerText = '🎮 SIMULATED DATA (Live Connection Failed)';
-            analysisText.innerText = "Simulating realistic market data...";
+            modeBadge.innerText = '🎮 SIMULATED DATA';
+            analysisText.innerText = "Generating realistic market data...";
             
-            // Start generating realistic ticks
+            // Start generating ticks IMMEDIATELY
             if (tickSimInterval) clearInterval(tickSimInterval);
             tickSimInterval = setInterval(() => {
                 const change = (Math.random() - 0.5) * 0.1;
