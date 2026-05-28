@@ -238,7 +238,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge live-badge">⏳ Connecting...</div>
+        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -356,10 +356,8 @@
             phase = 'analysis';
             countdownValue = 20;
             hasReceivedData = false;
-            modeBadge.innerText = '⏳ Connecting...';
-            modeBadge.className = 'mode-badge live-badge';
 
-            // Try live connection with 2 second timeout (FASTER!)
+            // Try live connection with 2 second timeout
             connectionTimeout = setTimeout(() => {
                 console.log("Live connection timeout - switching to simulated data");
                 startSimulation();
@@ -392,8 +390,8 @@
                                 hasReceivedData = true;
                                 usingLiveData = true;
                                 modeBadge.className = 'mode-badge live-badge';
-                                modeBadge.innerText = '🔴 LIVE MARKET';
-                                analysisText.innerText = "✅ Live Deriv market connected!";
+                                modeBadge.innerText = '🔴 LIVE MARKET - CONNECTED';
+                                analysisText.innerText = "✅ Live market connected!";
                                 updateCountdown();
                             }
 
@@ -436,8 +434,8 @@
             ws = null;
             usingLiveData = false;
             modeBadge.className = 'mode-badge simulated-badge';
-            modeBadge.innerText = '🎮 SIMULATED DATA';
-            analysisText.innerText = "Generating realistic market data...";
+            modeBadge.innerText = '🎮 SIMULATED DATA - CONNECTED';
+            analysisText.innerText = "✅ Simulated market connected!";
             
             // Start generating ticks IMMEDIATELY
             if (tickSimInterval) clearInterval(tickSimInterval);
