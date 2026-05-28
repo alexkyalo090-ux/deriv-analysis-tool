@@ -216,12 +216,6 @@
             animation: pulse 2s infinite;
         }
 
-        .live-badge {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
-            color: #fca5a5;
-        }
-
         .simulated-badge {
             background: rgba(59, 130, 246, 0.2);
             border: 1px solid #3b82f6;
@@ -238,7 +232,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
+        <div id="mode-badge" class="mode-badge simulated-badge">🎮 SIMULATED DATA</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -270,7 +264,7 @@
                 </div>
             </div>
 
-            <button id="start-btn">Connect to Market</button>
+            <button id="start-btn">Start Analysis</button>
         </div>
 
         <div id="result-box" class="results-panel hidden">
@@ -297,20 +291,16 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Initializing analysis...</span>
+                Analysis: <span id="analysis-text">✅ Connected! Generating market data...</span>
             </div>
         </div>
     </div>
 
     <script>
         let tickHistory = [];
-        let ws = null;
         let cycleCount = 0;
-        let usingLiveData = false;
-        let connectionTimeout = null;
         let tickSimInterval = null;
         let basePrice = 1234.56;
-        let hasReceivedData = false;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -342,100 +332,18 @@
         });
 
         startBtn.addEventListener('click', () => {
-            if (ws === null && !usingLiveData) {
-                connectToMarket();
-            }
+            startAnalysis();
         });
 
-        function connectToMarket() {
+        function startAnalysis() {
             startBtn.disabled = true;
-            startBtn.innerText = "Connecting...";
+            startBtn.innerText = "Analyzing...";
             resultBox.classList.remove('hidden');
             tickHistory = [];
             cycleCount = 0;
             phase = 'analysis';
             countdownValue = 20;
-            hasReceivedData = false;
-
-            // Try live connection with 2 second timeout
-            connectionTimeout = setTimeout(() => {
-                console.log("Live connection timeout - switching to simulated data");
-                startSimulation();
-            }, 2000);
-
-            connectLiveMarket();
-        }
-
-        function connectLiveMarket() {
-            const wsUrl = 'wss://ws.binaryws.com';
-
-            try {
-                ws = new WebSocket(wsUrl);
-
-                ws.onopen = () => {
-                    const symbol = assetSelect.value;
-                    ws.send(JSON.stringify({
-                        "ticks": symbol,
-                        "subscribe": 1
-                    }));
-                };
-
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.tick) {
-                            // Successfully received live data!
-                            if (!hasReceivedData) {
-                                clearTimeout(connectionTimeout);
-                                hasReceivedData = true;
-                                usingLiveData = true;
-                                modeBadge.className = 'mode-badge live-badge';
-                                modeBadge.innerText = '🔴 LIVE MARKET - CONNECTED';
-                                analysisText.innerText = "✅ Live market connected!";
-                                updateCountdown();
-                            }
-
-                            const lastDigit = Math.floor(data.tick.quote) % 10;
-                            tickHistory.push(lastDigit);
-                            if (tickHistory.length > 1000) tickHistory.shift();
-
-                            liveTickDisp.innerText = data.tick.quote.toFixed(2);
-                            const now = new Date();
-                            liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
-                            tickCountDisp.innerText = tickHistory.length;
-                        }
-                    } catch(e) {
-                        console.error("Error:", e);
-                    }
-                };
-
-                ws.onerror = () => {
-                    console.log("WebSocket error");
-                    if (!hasReceivedData) {
-                        clearTimeout(connectionTimeout);
-                        startSimulation();
-                    }
-                };
-
-                ws.onclose = () => {
-                    console.log("WebSocket closed");
-                };
-
-            } catch (error) {
-                console.log("Connection failed");
-                if (!hasReceivedData) {
-                    clearTimeout(connectionTimeout);
-                    startSimulation();
-                }
-            }
-        }
-
-        function startSimulation() {
-            ws = null;
-            usingLiveData = false;
-            modeBadge.className = 'mode-badge simulated-badge';
             modeBadge.innerText = '🎮 SIMULATED DATA - CONNECTED';
-            analysisText.innerText = "✅ Simulated market connected!";
             
             // Start generating ticks IMMEDIATELY
             if (tickSimInterval) clearInterval(tickSimInterval);
@@ -452,7 +360,7 @@
                 tickCountDisp.innerText = tickHistory.length;
             }, 50);
 
-            startBtn.disabled = true;
+            // Start countdown IMMEDIATELY
             updateCountdown();
         }
 
