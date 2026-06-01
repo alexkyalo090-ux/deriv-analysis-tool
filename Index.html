@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deriv Analysis Tool Pro - LIVE MARKET</title>
+    <title>Deriv Analysis Tool Pro</title>
     <style>
         * {
             box-sizing: border-box;
@@ -227,6 +227,12 @@
             color: #fca5a5;
         }
 
+        .simulated-badge {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #93c5fd;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -237,7 +243,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
+        <div id="mode-badge" class="mode-badge live-badge">🔴 STARTING...</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -269,7 +275,7 @@
                 </div>
             </div>
 
-            <button id="start-btn">Connect to Live Market</button>
+            <button id="start-btn">Start Analysis</button>
         </div>
 
         <div id="result-box" class="results-panel hidden">
@@ -296,7 +302,7 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Connecting to live Deriv feed...</span>
+                Analysis: <span id="analysis-text">Initializing...</span>
             </div>
         </div>
     </div>
@@ -305,6 +311,10 @@
         let tickHistory = [];
         let ws = null;
         let cycleCount = 0;
+        let tickSimInterval = null;
+        let basePrice = 1234.56;
+        let usingLiveData = false;
+        let connectionAttempted = false;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -336,34 +346,49 @@
         });
 
         startBtn.addEventListener('click', () => {
-            if (ws === null) {
-                connectLiveMarket();
-            }
+            startAnalysis();
         });
 
-        function connectLiveMarket() {
+        function startAnalysis() {
             startBtn.disabled = true;
-            startBtn.innerText = "Connecting...";
+            startBtn.innerText = "Starting...";
             resultBox.classList.remove('hidden');
             tickHistory = [];
             cycleCount = 0;
             phase = 'analysis';
             countdownValue = 20;
+            connectionAttempted = false;
+            usingLiveData = false;
 
+            // Try live connection with 3 second timeout
+            setTimeout(() => {
+                if (!connectionAttempted) {
+                    startSimulation();
+                }
+            }, 3000);
+
+            connectLiveMarket();
+        }
+
+        function connectLiveMarket() {
             const wsUrl = 'wss://ws.binaryws.com';
 
             try {
                 ws = new WebSocket(wsUrl);
 
                 ws.onopen = () => {
+                    connectionAttempted = true;
                     const symbol = assetSelect.value;
                     ws.send(JSON.stringify({
                         "ticks": symbol,
                         "subscribe": 1
                     }));
+                    usingLiveData = true;
+                    modeBadge.className = 'mode-badge live-badge';
                     modeBadge.innerText = '🔴 LIVE MARKET - CONNECTED';
                     analysisText.innerText = "✅ Connected to live Deriv market!";
-                    updateCountdown();
+                    if (tickSimInterval) clearInterval(tickSimInterval);
+                    if (!countdownInterval) updateCountdown();
                 };
 
                 ws.onmessage = (event) => {
@@ -380,30 +405,58 @@
                             tickCountDisp.innerText = tickHistory.length;
                         }
                     } catch(e) {
-                        console.error("Error:", e);
+                        console.error("Error parsing tick:", e);
                     }
                 };
 
-                ws.onerror = (error) => {
-                    analysisText.innerText = "❌ Connection failed. Check internet.";
-                    predDigitDisp.innerText = "Error";
-                    startBtn.disabled = false;
-                    startBtn.innerText = "Retry";
-                    ws = null;
+                ws.onerror = () => {
+                    if (!connectionAttempted) {
+                        connectionAttempted = true;
+                        startSimulation();
+                    }
                 };
 
                 ws.onclose = () => {
-                    if (countdownInterval) clearInterval(countdownInterval);
-                    startBtn.disabled = false;
-                    startBtn.innerText = "Reconnect";
-                    ws = null;
+                    if (!connectionAttempted) {
+                        connectionAttempted = true;
+                        startSimulation();
+                    }
                 };
 
             } catch (error) {
-                analysisText.innerText = "❌ Connection failed.";
-                startBtn.disabled = false;
-                startBtn.innerText = "Retry";
+                if (!connectionAttempted) {
+                    connectionAttempted = true;
+                    startSimulation();
+                }
             }
+        }
+
+        function startSimulation() {
+            connectionAttempted = true;
+            usingLiveData = false;
+            if (ws) ws.close();
+            ws = null;
+
+            modeBadge.className = 'mode-badge simulated-badge';
+            modeBadge.innerText = '🎮 SIMULATED DATA - GENERATING';
+            analysisText.innerText = "✅ Market simulator activated!";
+
+            // Start generating ticks
+            if (tickSimInterval) clearInterval(tickSimInterval);
+            tickSimInterval = setInterval(() => {
+                const change = (Math.random() - 0.5) * 0.1;
+                basePrice += change;
+                const lastDigit = Math.floor(basePrice) % 10;
+                tickHistory.push(lastDigit);
+                if (tickHistory.length > 1000) tickHistory.shift();
+
+                liveTickDisp.innerText = basePrice.toFixed(2);
+                const now = new Date();
+                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
+                tickCountDisp.innerText = tickHistory.length;
+            }, 50);
+
+            if (!countdownInterval) updateCountdown();
         }
 
         function updateCountdown() {
