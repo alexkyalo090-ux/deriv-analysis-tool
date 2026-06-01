@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deriv Analysis Tool Pro</title>
+    <title>Deriv Analysis Tool Pro - LIVE MARKET</title>
     <style>
         * {
             box-sizing: border-box;
@@ -111,6 +111,11 @@
             transition: all 0.2s ease;
         }
 
+        #start-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .results-panel {
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(168, 85, 247, 0.15);
@@ -216,10 +221,10 @@
             animation: pulse 2s infinite;
         }
 
-        .simulated-badge {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid #3b82f6;
-            color: #93c5fd;
+        .live-badge {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
         }
 
         @keyframes pulse {
@@ -232,7 +237,7 @@
 <body>
     <div class="dashboard-card">
         <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge simulated-badge">🎮 SIMULATED DATA</div>
+        <div id="mode-badge" class="mode-badge live-badge">🔴 LIVE MARKET</div>
 
         <div class="control-panel">
             <div class="input-group">
@@ -264,12 +269,12 @@
                 </div>
             </div>
 
-            <button id="start-btn">Start Analysis</button>
+            <button id="start-btn">Connect to Live Market</button>
         </div>
 
         <div id="result-box" class="results-panel hidden">
             <p id="prediction-title" class="panel-title">🎯 Prediction View</p>
-            <h1 id="prediction-digit">Initializing...</h1>
+            <h1 id="prediction-digit">Loading...</h1>
 
             <div class="live-countdown-line">
                 <span id="countdown-label">Analysis Phase:</span> <span id="countdown-timer">20s</span>
@@ -291,16 +296,15 @@
             </div>
 
             <div class="analysis-footer">
-                Analysis: <span id="analysis-text">✅ Connected! Generating market data...</span>
+                Analysis: <span id="analysis-text">Connecting to live Deriv feed...</span>
             </div>
         </div>
     </div>
 
     <script>
         let tickHistory = [];
+        let ws = null;
         let cycleCount = 0;
-        let tickSimInterval = null;
-        let basePrice = 1234.56;
 
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
@@ -332,36 +336,74 @@
         });
 
         startBtn.addEventListener('click', () => {
-            startAnalysis();
+            if (ws === null) {
+                connectLiveMarket();
+            }
         });
 
-        function startAnalysis() {
+        function connectLiveMarket() {
             startBtn.disabled = true;
-            startBtn.innerText = "Analyzing...";
+            startBtn.innerText = "Connecting...";
             resultBox.classList.remove('hidden');
             tickHistory = [];
             cycleCount = 0;
             phase = 'analysis';
             countdownValue = 20;
-            modeBadge.innerText = '🎮 SIMULATED DATA - CONNECTED';
-            
-            // Start generating ticks IMMEDIATELY
-            if (tickSimInterval) clearInterval(tickSimInterval);
-            tickSimInterval = setInterval(() => {
-                const change = (Math.random() - 0.5) * 0.1;
-                basePrice += change;
-                const lastDigit = Math.floor(basePrice) % 10;
-                tickHistory.push(lastDigit);
-                if (tickHistory.length > 1000) tickHistory.shift();
 
-                liveTickDisp.innerText = basePrice.toFixed(2);
-                const now = new Date();
-                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
-                tickCountDisp.innerText = tickHistory.length;
-            }, 50);
+            const wsUrl = 'wss://ws.binaryws.com';
 
-            // Start countdown IMMEDIATELY
-            updateCountdown();
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    const symbol = assetSelect.value;
+                    ws.send(JSON.stringify({
+                        "ticks": symbol,
+                        "subscribe": 1
+                    }));
+                    modeBadge.innerText = '🔴 LIVE MARKET - CONNECTED';
+                    analysisText.innerText = "✅ Connected to live Deriv market!";
+                    updateCountdown();
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.tick) {
+                            const lastDigit = Math.floor(data.tick.quote) % 10;
+                            tickHistory.push(lastDigit);
+                            if (tickHistory.length > 1000) tickHistory.shift();
+
+                            liveTickDisp.innerText = data.tick.quote.toFixed(2);
+                            const now = new Date();
+                            liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
+                            tickCountDisp.innerText = tickHistory.length;
+                        }
+                    } catch(e) {
+                        console.error("Error:", e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    analysisText.innerText = "❌ Connection failed. Check internet.";
+                    predDigitDisp.innerText = "Error";
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Retry";
+                    ws = null;
+                };
+
+                ws.onclose = () => {
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Reconnect";
+                    ws = null;
+                };
+
+            } catch (error) {
+                analysisText.innerText = "❌ Connection failed.";
+                startBtn.disabled = false;
+                startBtn.innerText = "Retry";
+            }
         }
 
         function updateCountdown() {
