@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deriv Analysis Tool Pro</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <style>
         * {
             box-sizing: border-box;
@@ -22,13 +25,12 @@
 
         .dashboard-card {
             width: 100%;
-            max-width: 440px;
+            max-width: 520px;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 28px;
-            padding: 22px;
+            padding: 25px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
             color: #ffffff;
             text-align: center;
@@ -36,46 +38,95 @@
 
         h2.title {
             color: #c084fc;
-            font-size: 21px;
+            font-size: 24px;
             font-weight: 900;
             margin-bottom: 20px;
-            letter-spacing: -0.5px;
+        }
+
+        .auth-section {
+            background: rgba(107, 33, 168, 0.2);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #c084fc;
+            margin-bottom: 6px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            background: #090514;
+            border: 1px solid #6b21a8;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 13px;
+            color: #f3f4f6;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .input-group input::placeholder {
+            color: #64748b;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #auth-btn {
+            background: #10b981;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        #auth-btn:disabled {
+            opacity: 0.6;
+        }
+
+        .status {
+            font-size: 11px;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
         }
 
         .control-panel {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(168, 85, 247, 0.2);
             border-radius: 20px;
-            padding: 18px;
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .input-group {
-            text-align: left;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 11px;
-            font-weight: 700;
-            color: #c084fc;
-            margin-bottom: 5px;
-            padding-left: 2px;
-        }
-
-        .input-group select {
-            width: 100%;
-            background: #090514;
-            border: 1px solid #6b21a8;
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 14px;
-            color: #f3f4f6;
-            font-weight: 600;
-            outline: none;
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
         .live-tracker {
@@ -83,13 +134,13 @@
             border: 1px solid rgba(168, 85, 247, 0.25);
             border-radius: 16px;
             padding: 14px;
+            margin-bottom: 16px;
         }
 
         #live-tick {
             font-size: 38px;
             font-weight: 900;
             color: #e9d5ff;
-            letter-spacing: -1px;
         }
 
         .tracker-subtext {
@@ -99,20 +150,12 @@
         }
 
         #start-btn {
-            width: 100%;
             background: #7e22ce;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: 700;
-            padding: 14px;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            color: white;
         }
 
         #start-btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
@@ -123,441 +166,232 @@
             padding: 18px;
         }
 
-        .panel-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #a78bfa;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        #prediction-digit {
-            font-size: 34px;
-            font-weight: 900;
-            color: #f59e0b;
-            margin-top: 8px;
-            margin-bottom: 2px;
-            transition: all 0.3s ease;
-        }
-
-        .live-countdown-line {
-            font-size: 14px;
-            font-weight: bold;
-            color: #f59e0b;
-            margin-bottom: 10px;
-        }
-
-        .strategy-tag {
-            font-size: 11px;
-            color: #64748b;
-            margin-bottom: 12px;
-        }
-
-        .matrix-list {
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #cbd5e1;
-            text-align: left;
-        }
-
-        .matrix-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .bar-container {
-            width: 100px;
-            background: #020105;
-            height: 6px;
-            border-radius: 99px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #confidence-bar {
-            width: 0%;
-            height: 100%;
-            background: #ef4444;
-            transition: width 0.3s ease;
-        }
-
-        .value-highlight {
-            color: #f1f5f9;
-            font-weight: 900;
-        }
-
-        .analysis-footer {
-            margin-top: 14px;
-            background: rgba(168, 85, 247, 0.08);
-            border: 1px solid rgba(168, 85, 247, 0.12);
-            border-radius: 12px;
-            padding: 10px;
-            font-size: 11px;
-            color: #94a3b8;
-        }
-
-        #analysis-text {
-            font-style: italic;
-            color: #e2e8f0;
-        }
-
         .hidden {
             display: none !important;
         }
 
-        .mode-badge {
-            padding: 6px 12px;
-            border-radius: 8px;
+        #prediction-digit {
+            font-size: 48px;
+            font-weight: 900;
+            color: #f59e0b;
+            margin: 15px 0;
+        }
+
+        .info-text {
             font-size: 10px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-align: center;
-            animation: pulse 2s infinite;
-        }
-
-        .live-badge {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
-            color: #fca5a5;
-        }
-
-        .simulated-badge {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid #3b82f6;
-            color: #93c5fd;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            color: #94a3b8;
+            margin-top: 10px;
+            line-height: 1.5;
         }
     </style>
-
 </head>
 <body>
     <div class="dashboard-card">
-        <h2 class="title">Deriv Analysis Tool Pro</h2>
-        <div id="mode-badge" class="mode-badge live-badge">🔴 STARTING...</div>
+        <h2 class="title">🚀 Deriv Analysis Tool</h2>
 
+        <!-- Authentication Section -->
+        <div class="auth-section">
+            <div class="input-group">
+                <label>🔑 Deriv API Token:</label>
+                <input type="text" id="api-token" placeholder="Paste your API token here">
+            </div>
+            <button id="auth-btn">✅ Authenticate</button>
+            <div id="auth-status" class="status error">Not Authenticated</div>
+            <div class="info-text">Get token at: <strong>Deriv.com → Account Settings → API Tokens</strong></div>
+        </div>
+
+        <!-- Trading Section -->
         <div class="control-panel">
             <div class="input-group">
                 <label>📊 Asset:</label>
-                <select id="asset">
-                    <option value="R_10">Volatility 10 Index</option>
-                    <option value="R_25">Volatility 25 Index</option>
-                    <option value="R_50">Volatility 50 Index</option>
-                    <option value="R_75">Volatility 75 Index</option>
-                    <option value="R_100">Volatility 100 Index</option>
+                <select id="asset" disabled>
+                    <option value="R_10">Volatility 10</option>
+                    <option value="R_25">Volatility 25</option>
+                    <option value="R_50">Volatility 50</option>
+                    <option value="R_100">Volatility 100</option>
                 </select>
             </div>
 
             <div class="input-group">
-                <label>🕒 Strategy:</label>
-                <select id="strategy">
+                <label>🎯 Strategy:</label>
+                <select id="strategy" disabled>
                     <option value="matches">Matches</option>
                     <option value="differs">Differs</option>
-                    <option value="even_odd">Even / Odd</option>
-                    <option value="over_under">Over / Under 5</option>
-                    <option value="rise_fall">Rise / Fall</option>
+                    <option value="even_odd">Even/Odd</option>
+                    <option value="over_under">Over/Under 5</option>
                 </select>
             </div>
 
             <div class="live-tracker">
                 <div id="live-tick">0000.00</div>
-                <div class="tracker-subtext">
-                    Last update: <span id="live-time">00:00:00</span> | Ticks: <span id="tick-count">0</span>
-                </div>
+                <div class="tracker-subtext">Ticks: <span id="tick-count">0</span></div>
             </div>
 
-            <button id="start-btn">Start Analysis</button>
+            <button id="start-btn" disabled>▶️ Connect</button>
         </div>
 
+        <!-- Results Section -->
         <div id="result-box" class="results-panel hidden">
-            <p id="prediction-title" class="panel-title">🎯 Prediction View</p>
-            <h1 id="prediction-digit">Loading...</h1>
-
-            <div class="live-countdown-line">
-                <span id="countdown-label">Analysis Phase:</span> <span id="countdown-timer">20s</span>
+            <h3 style="color: #a78bfa; margin-bottom: 10px;">📈 PREDICTION</h3>
+            <div id="prediction-digit">--</div>
+            <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 15px;">
+                Confidence: <span id="confidence-txt" style="color: #10b981; font-weight: 900;">0%</span>
             </div>
-
-            <p id="strategy-label" class="strategy-tag">Matches Strategy</p>
-
-            <div class="matrix-list">
-                <div class="matrix-row">
-                    <span>Confidence: <span id="confidence-txt" style="color: #ef4444;">0%</span></span>
-                    <div class="bar-container">
-                        <div id="confidence-bar"></div>
-                    </div>
-                </div>
-                <div class="matrix-row">
-                    <span>Recommended Runs:</span>
-                    <span id="recommended-runs" class="value-highlight">...</span>
-                </div>
-            </div>
-
-            <div class="analysis-footer">
-                Analysis: <span id="analysis-text">Initializing...</span>
-            </div>
+            <div id="analysis-text" style="font-size: 11px; color: #94a3b8; font-style: italic;">Analyzing...</div>
         </div>
     </div>
 
     <script>
-        let tickHistory = [];
         let ws = null;
-        let cycleCount = 0;
-        let tickSimInterval = null;
-        let basePrice = 1234.56;
-        let usingLiveData = false;
-        let connectionAttempted = false;
+        let tickHistory = [];
+        let isAuth = false;
+        let token = localStorage.getItem('deriv_token') || '';
 
+        const authBtn = document.getElementById('auth-btn');
+        const authInput = document.getElementById('api-token');
+        const authStatus = document.getElementById('auth-status');
         const startBtn = document.getElementById('start-btn');
         const assetSelect = document.getElementById('asset');
         const strategySelect = document.getElementById('strategy');
         const liveTickDisp = document.getElementById('live-tick');
-        const liveTimeDisp = document.getElementById('live-time');
         const tickCountDisp = document.getElementById('tick-count');
         const resultBox = document.getElementById('result-box');
-        const modeBadge = document.getElementById('mode-badge');
-
-        const predTitle = document.getElementById('prediction-title');
         const predDigitDisp = document.getElementById('prediction-digit');
-        const strategyLabel = document.getElementById('strategy-label');
         const confidenceTxt = document.getElementById('confidence-txt');
-        const confidenceBar = document.getElementById('confidence-bar');
-        const recommendedRunsDisp = document.getElementById('recommended-runs');
-        const countdownTimer = document.getElementById('countdown-timer');
-        const countdownLabel = document.getElementById('countdown-label');
         const analysisText = document.getElementById('analysis-text');
 
-        let countdownValue = 20;
-        let phase = 'analysis';
-        let countdownInterval = null;
+        if (token) authInput.value = token;
 
-        strategySelect.addEventListener('change', () => {
-            const activeText = strategySelect.options[strategySelect.selectedIndex].text;
-            strategyLabel.innerText = activeText + " Strategy";
-            predTitle.innerText = "🎯 " + activeText + " Prediction";
-        });
-
-        startBtn.addEventListener('click', () => {
-            startAnalysis();
-        });
-
-        function startAnalysis() {
-            startBtn.disabled = true;
-            startBtn.innerText = "Starting...";
-            resultBox.classList.remove('hidden');
-            tickHistory = [];
-            cycleCount = 0;
-            phase = 'analysis';
-            countdownValue = 20;
-            connectionAttempted = false;
-            usingLiveData = false;
-
-            // Try live connection with 3 second timeout
-            setTimeout(() => {
-                if (!connectionAttempted) {
-                    startSimulation();
-                }
-            }, 3000);
-
-            connectLiveMarket();
-        }
-
-        function connectLiveMarket() {
-            const wsUrl = 'wss://ws.binaryws.com';
-
-            try {
-                ws = new WebSocket(wsUrl);
-
-                ws.onopen = () => {
-                    connectionAttempted = true;
-                    const symbol = assetSelect.value;
-                    ws.send(JSON.stringify({
-                        "ticks": symbol,
-                        "subscribe": 1
-                    }));
-                    usingLiveData = true;
-                    modeBadge.className = 'mode-badge live-badge';
-                    modeBadge.innerText = '🔴 LIVE MARKET - CONNECTED';
-                    analysisText.innerText = "✅ Connected to live Deriv market!";
-                    if (tickSimInterval) clearInterval(tickSimInterval);
-                    if (!countdownInterval) updateCountdown();
-                };
-
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.tick) {
-                            const lastDigit = Math.floor(data.tick.quote) % 10;
-                            tickHistory.push(lastDigit);
-                            if (tickHistory.length > 1000) tickHistory.shift();
-
-                            liveTickDisp.innerText = data.tick.quote.toFixed(2);
-                            const now = new Date();
-                            liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
-                            tickCountDisp.innerText = tickHistory.length;
-                        }
-                    } catch(e) {
-                        console.error("Error parsing tick:", e);
-                    }
-                };
-
-                ws.onerror = () => {
-                    if (!connectionAttempted) {
-                        connectionAttempted = true;
-                        startSimulation();
-                    }
-                };
-
-                ws.onclose = () => {
-                    if (!connectionAttempted) {
-                        connectionAttempted = true;
-                        startSimulation();
-                    }
-                };
-
-            } catch (error) {
-                if (!connectionAttempted) {
-                    connectionAttempted = true;
-                    startSimulation();
-                }
-            }
-        }
-
-        function startSimulation() {
-            connectionAttempted = true;
-            usingLiveData = false;
-            if (ws) ws.close();
-            ws = null;
-
-            modeBadge.className = 'mode-badge simulated-badge';
-            modeBadge.innerText = '🎮 SIMULATED DATA - GENERATING';
-            analysisText.innerText = "✅ Market simulator activated!";
-
-            // Start generating ticks
-            if (tickSimInterval) clearInterval(tickSimInterval);
-            tickSimInterval = setInterval(() => {
-                const change = (Math.random() - 0.5) * 0.1;
-                basePrice += change;
-                const lastDigit = Math.floor(basePrice) % 10;
-                tickHistory.push(lastDigit);
-                if (tickHistory.length > 1000) tickHistory.shift();
-
-                liveTickDisp.innerText = basePrice.toFixed(2);
-                const now = new Date();
-                liveTimeDisp.innerText = now.toTimeString().split(' ')[0];
-                tickCountDisp.innerText = tickHistory.length;
-            }, 50);
-
-            if (!countdownInterval) updateCountdown();
-        }
-
-        function updateCountdown() {
-            if (countdownInterval) clearInterval(countdownInterval);
-
-            countdownInterval = setInterval(() => {
-                countdownValue--;
-                countdownTimer.innerText = `${countdownValue}s`;
-
-                if (countdownValue <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownInterval = null;
-
-                    if (phase === 'analysis') {
-                        phase = 'validation';
-                        cycleCount++;
-                        countdownLabel.innerText = `Cycle #${cycleCount}:`;
-                        countdownValue = 15;
-                        generatePrediction();
-                        updateCountdown();
-                    } else {
-                        countdownValue = 15;
-                        generatePrediction();
-                        updateCountdown();
-                    }
-                }
-            }, 1000);
-        }
-
-        function generatePrediction() {
-            if (tickHistory.length < 10) {
-                predDigitDisp.innerText = "Waiting...";
+        authBtn.addEventListener('click', () => {
+            const t = authInput.value.trim();
+            if (!t) {
+                alert('Please enter your API token');
                 return;
             }
+            authenticate(t);
+        });
+
+        function authenticate(apiToken) {
+            authBtn.disabled = true;
+            authBtn.innerText = '⏳ Validating...';
+            authStatus.innerText = '⏳ Checking token...';
+            authStatus.className = 'status error';
+
+            const testWs = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+
+            testWs.onopen = () => {
+                testWs.send(JSON.stringify({ authorize: apiToken }));
+            };
+
+            testWs.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.authorize) {
+                    isAuth = true;
+                    token = apiToken;
+                    localStorage.setItem('deriv_token', apiToken);
+                    authStatus.innerText = '✅ Authenticated!';
+                    authStatus.className = 'status success';
+                    authBtn.innerText = '✅ Done';
+                    authBtn.disabled = true;
+                    authInput.disabled = true;
+                    assetSelect.disabled = false;
+                    strategySelect.disabled = false;
+                    startBtn.disabled = false;
+                    testWs.close();
+                } else if (data.error) {
+                    authStatus.innerText = '❌ Invalid Token';
+                    authStatus.className = 'status error';
+                    authBtn.innerText = '✅ Authenticate';
+                    authBtn.disabled = false;
+                    localStorage.removeItem('deriv_token');
+                    testWs.close();
+                }
+            };
+
+            testWs.onerror = () => {
+                authStatus.innerText = '❌ Connection Error';
+                authStatus.className = 'status error';
+                authBtn.innerText = '✅ Authenticate';
+                authBtn.disabled = false;
+            };
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!isAuth) return;
+            connect();
+        });
+
+        function connect() {
+            startBtn.disabled = true;
+            startBtn.innerText = '⏳ Connecting...';
+            resultBox.classList.remove('hidden');
+            analysisText.innerText = '🔗 Connecting to Deriv...';
+
+            ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ authorize: token }));
+                setTimeout(() => {
+                    ws.send(JSON.stringify({
+                        ticks: assetSelect.value,
+                        subscribe: 1
+                    }));
+                }, 500);
+                analysisText.innerText = '✅ Connected!';
+            };
+
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.tick) {
+                    const digit = Math.floor(data.tick.quote) % 10;
+                    tickHistory.push(digit);
+                    if (tickHistory.length > 100) tickHistory.shift();
+                    liveTickDisp.innerText = data.tick.quote.toFixed(2);
+                    tickCountDisp.innerText = tickHistory.length;
+                    analyzePrediction();
+                }
+            };
+
+            ws.onerror = () => {
+                analysisText.innerText = '❌ Connection Failed';
+                startBtn.disabled = false;
+                startBtn.innerText = '▶️ Retry';
+            };
+        }
+
+        function analyzePrediction() {
+            if (tickHistory.length < 10) return;
 
             const strategy = strategySelect.value;
-            const recentTicks = tickHistory.slice(-100);
-            const digitFrequency = Array(10).fill(0);
+            const recent = tickHistory.slice(-50);
+            const freq = Array(10).fill(0);
+            recent.forEach(d => freq[d]++);
 
-            recentTicks.forEach(digit => {
-                digitFrequency[digit]++;
-            });
-
-            let prediction = '';
-            let confidence = 0;
-            let recommendation = 5;
+            let pred = '--';
+            let conf = 0;
 
             if (strategy === 'matches') {
-                const maxFreq = Math.max(...digitFrequency);
-                const mostCommon = digitFrequency.indexOf(maxFreq);
-                prediction = `Digit ${mostCommon}`;
-                confidence = Math.round((maxFreq / recentTicks.length) * 100);
-                recommendation = confidence > 60 ? 3 : 7;
-            }
-            else if (strategy === 'differs') {
-                const minFreq = Math.min(...digitFrequency);
-                const leastCommon = digitFrequency.indexOf(minFreq);
-                prediction = `Digit ${leastCommon}`;
-                confidence = Math.round(100 - (minFreq / recentTicks.length) * 100);
-                recommendation = 2;
+                const max = Math.max(...freq);
+                const idx = freq.indexOf(max);
+                pred = `Digit ${idx}`;
+                conf = Math.round((max / recent.length) * 100);
             }
             else if (strategy === 'even_odd') {
-                const evenCount = recentTicks.filter(d => d % 2 === 0).length;
-                const evenPercent = Math.round((evenCount / recentTicks.length) * 100);
-                prediction = evenPercent > 50 ? 'EVEN' : 'ODD';
-                confidence = Math.max(evenPercent, 100 - evenPercent);
-                recommendation = 6;
+                const even = recent.filter(d => d % 2 === 0).length;
+                pred = even > recent.length / 2 ? 'EVEN' : 'ODD';
+                conf = Math.max(even, recent.length - even) / recent.length * 100;
             }
             else if (strategy === 'over_under') {
-                const overFive = recentTicks.filter(d => d > 5).length;
-                const overPercent = Math.round((overFive / recentTicks.length) * 100);
-                prediction = overPercent > 50 ? 'OVER 5' : 'UNDER 5';
-                confidence = Math.max(overPercent, 100 - overPercent);
-                recommendation = 5;
-            }
-            else if (strategy === 'rise_fall') {
-                let riseCount = 0;
-                for (let i = 1; i < recentTicks.length; i++) {
-                    if (recentTicks[i] > recentTicks[i-1]) riseCount++;
-                }
-                const risePercent = Math.round((riseCount / (recentTicks.length - 1)) * 100);
-                prediction = risePercent > 50 ? 'RISE 📈' : 'FALL 📉';
-                confidence = Math.max(risePercent, 100 - risePercent);
-                recommendation = 4;
+                const over = recent.filter(d => d > 5).length;
+                pred = over > recent.length / 2 ? 'OVER 5' : 'UNDER 5';
+                conf = Math.max(over, recent.length - over) / recent.length * 100;
             }
 
-            predDigitDisp.innerText = prediction;
-            predDigitDisp.style.color = confidence > 60 ? '#10b981' : '#f59e0b';
-            confidenceTxt.innerText = `${confidence}%`;
-            confidenceTxt.style.color = confidence > 60 ? '#10b981' : '#ef4444';
-            confidenceBar.style.width = `${confidence}%`;
-            confidenceBar.style.backgroundColor = confidence > 60 ? '#10b981' : '#ef4444';
-            recommendedRunsDisp.innerText = recommendation;
-
-            if (confidence > 60) {
-                analysisText.innerText = `✅ Strong signal detected!`;
-            } else {
-                analysisText.innerText = `⚠️ Moderate signal - Exercise caution.`;
-            }
+            predDigitDisp.innerText = pred;
+            confidenceTxt.innerText = Math.round(conf) + '%';
+            confidenceTxt.style.color = conf > 60 ? '#10b981' : '#f59e0b';
+            analysisText.innerText = conf > 60 ? '✅ Strong Signal' : '⚠️ Weak Signal';
         }
     </script>
-
 </body>
 </html>
